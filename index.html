@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ATELIER — 패턴 스튜디오</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Work+Sans:wght@400;500;600;700&family=Special+Elite&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* ---- design tokens ---- */
+    --espresso:#211b16;
+    --espresso-2:#2b2319;
+    --kraft:#d9c8a3;
+    --kraft-light:#ece1c4;
+    --linen:#f1e8d6;
+    --chalk:#f4f1e9;
+    --graphite:#46413a;
+    --brass:#c2883f;
+    --brass-light:#dba85b;
+    --terracotta:#b5654a;
+    --teal:#3c6e64;
+    --navy:#33425a;
+    --line-soft: rgba(244,241,233,0.18);
+    --shadow-deep: rgba(0,0,0,0.45);
+    --font-display:'Fraunces', serif;
+    --font-body:'Work Sans', sans-serif;
+    --font-stamp:'Special Elite', monospace;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;background:var(--espresso);overflow:hidden;}
+  body{
+    font-family:var(--font-body);
+    color:var(--chalk);
+    -webkit-font-smoothing:antialiased;
+  }
+
+  #app{
+    position:relative;
+    width:100vw;
+    height:100vh;
+    display:flex;
+  }
+
+  /* ---------- 3D viewport ---------- */
+  #viewport{
+    position:relative;
+    flex:1 1 auto;
+    min-width:0;
+    height:100%;
+    background:
+      radial-gradient(ellipse 90% 70% at 50% 18%, rgba(255,225,170,0.10), transparent 60%),
+      linear-gradient(180deg, #2a231b 0%, #1b1611 78%, #14110d 100%);
+  }
+  #viewport canvas{display:block;}
+
+  .vignette{
+    position:absolute; inset:0; pointer-events:none;
+    background: radial-gradient(ellipse 120% 90% at 50% 45%, transparent 55%, rgba(0,0,0,0.55) 100%);
+    mix-blend-mode:multiply;
+  }
+
+  /* ---------- top brand bar ---------- */
+  .brandbar{
+    position:absolute; top:0; left:0; right:0;
+    display:flex; align-items:baseline; justify-content:space-between;
+    padding:22px 28px 0 28px;
+    pointer-events:none;
+    z-index:5;
+  }
+  .brand-mark{
+    font-family:var(--font-display);
+    font-weight:600;
+    font-style:italic;
+    font-size:22px;
+    letter-spacing:0.5px;
+    color:var(--chalk);
+    text-shadow:0 2px 10px rgba(0,0,0,0.5);
+  }
+  .brand-mark .dot{color:var(--brass-light);}
+  .brand-sub{
+    font-family:var(--font-stamp);
+    font-size:11px;
+    letter-spacing:1.5px;
+    color:rgba(244,241,233,0.45);
+    text-transform:uppercase;
+  }
+
+  /* ---------- loading hint ---------- */
+  #hint{
+    position:absolute; left:28px; bottom:26px; z-index:5;
+    font-size:12px; color:rgba(244,241,233,0.5);
+    display:flex; gap:14px; align-items:center;
+    font-family:var(--font-body);
+  }
+  #hint span{display:inline-flex; align-items:center; gap:6px;}
+  #hint kbd{
+    border:1px solid rgba(244,241,233,0.35);
+    border-radius:4px; padding:1px 6px; font-size:11px;
+    font-family:var(--font-body);
+  }
+
+  /* ---------- view tools (top view / reset) ---------- */
+  .view-tools{
+    position:absolute; top:22px; right:28px; z-index:6;
+    display:flex; gap:8px;
+  }
+  .icon-btn{
+    width:38px; height:38px; border-radius:50%;
+    background:rgba(33,27,22,0.55);
+    border:1px solid rgba(244,241,233,0.2);
+    color:var(--chalk);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+    backdrop-filter:blur(6px);
+    transition:background 0.15s, border-color 0.15s, transform 0.15s;
+  }
+  .icon-btn:hover{background:rgba(194,136,63,0.35); border-color:var(--brass-light); transform:translateY(-1px);}
+  .icon-btn svg{width:17px; height:17px;}
+
+  /* ---------- sidebar ---------- */
+  #sidebar{
+    width:392px;
+    flex:0 0 auto;
+    height:100%;
+    background:linear-gradient(180deg, var(--kraft-light) 0%, var(--kraft) 100%);
+    color:var(--graphite);
+    box-shadow:-30px 0 60px var(--shadow-deep);
+    display:flex;
+    flex-direction:column;
+    overflow-y:auto;
+    position:relative;
+    z-index:10;
+  }
+  #sidebar::-webkit-scrollbar{width:8px;}
+  #sidebar::-webkit-scrollbar-thumb{background:rgba(70,65,58,0.25); border-radius:4px;}
+
+  .sb-section{
+    padding:26px 28px;
+    border-bottom:1px dashed rgba(70,65,58,0.28);
+  }
+  .sb-section:last-child{border-bottom:none;}
+
+  .sb-title{
+    font-family:var(--font-display);
+    font-size:27px;
+    font-weight:600;
+    line-height:1.15;
+    margin:0 0 4px 0;
+    color:#2c2419;
+  }
+  .sb-eyebrow{
+    font-family:var(--font-stamp);
+    font-size:10.5px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    color:var(--terracotta);
+    margin:0 0 10px 0;
+  }
+  .sb-desc{
+    font-size:13px; line-height:1.55;
+    color:rgba(44,36,25,0.72);
+    margin:0;
+  }
+
+  /* garment tabs (fabric swatch style) */
+  .garment-tabs{
+    display:flex; gap:10px; margin-top:18px;
+  }
+  .garment-tab{
+    flex:1; position:relative;
+    border:none; background:none; cursor:pointer;
+    padding:0; font-family:var(--font-body);
+  }
+  .swatch{
+    height:64px; border-radius:8px 8px 3px 3px;
+    border:1px solid rgba(44,36,25,0.18);
+    box-shadow:0 3px 0 rgba(44,36,25,0.12), inset 0 0 0 1px rgba(255,255,255,0.18);
+    margin-bottom:8px;
+    display:flex; align-items:center; justify-content:center;
+    position:relative;
+    transition:transform 0.18s, box-shadow 0.18s;
+  }
+  .swatch svg{width:26px; height:26px; opacity:0.9;}
+  .garment-tab .tab-label{
+    font-size:12.5px; font-weight:600; color:#2c2419;
+    display:block;
+  }
+  .garment-tab .tab-sub{
+    font-size:10px; color:rgba(44,36,25,0.55);
+    font-family:var(--font-stamp); letter-spacing:0.5px;
+  }
+  .garment-tab:hover .swatch{transform:translateY(-2px); box-shadow:0 6px 10px rgba(44,36,25,0.18);}
+  .garment-tab.active .swatch{
+    box-shadow:0 0 0 2px var(--brass), 0 6px 12px rgba(44,36,25,0.22);
+    transform:translateY(-2px);
+  }
+  .garment-tab.active .tab-label{color:var(--brass);}
+
+  /* tape-measure slider */
+  .slider-block{margin-top:6px;}
+  .slider-labels{
+    display:flex; justify-content:space-between;
+    font-family:var(--font-stamp); font-size:11px;
+    letter-spacing:0.5px; color:rgba(44,36,25,0.6);
+    margin-bottom:10px; text-transform:uppercase;
+  }
+  .slider-labels .active-label{color:var(--terracotta); font-weight:700;}
+
+  .tape-wrap{position:relative; padding:14px 4px 6px;}
+  .tape-track{
+    position:relative; height:34px;
+    background:repeating-linear-gradient(
+      90deg,
+      rgba(44,36,25,0.55) 0px, rgba(44,36,25,0.55) 1px,
+      transparent 1px, transparent 12px
+    );
+    background-color:#efe2c2;
+    border-radius:5px;
+    border:1px solid rgba(44,36,25,0.25);
+    box-shadow:inset 0 2px 4px rgba(44,36,25,0.18);
+  }
+  .tape-track::before{
+    content:'';
+    position:absolute; left:0; top:50%; right:0; height:1px;
+    background:rgba(44,36,25,0.2);
+  }
+  .tape-fill{
+    position:absolute; top:0; bottom:0; left:0;
+    background:linear-gradient(180deg, rgba(181,101,74,0.28), rgba(181,101,74,0.12));
+    border-radius:5px 0 0 5px;
+    pointer-events:none;
+  }
+  #patternSlider{
+    -webkit-appearance:none; appearance:none;
+    position:relative;
+    width:100%; height:34px;
+    background:transparent;
+    margin:0;
+    cursor:grab;
+  }
+  #patternSlider:active{cursor:grabbing;}
+  #patternSlider::-webkit-slider-thumb{
+    -webkit-appearance:none;
+    width:22px; height:42px;
+    margin-top:-4px;
+    border-radius:4px;
+    background:linear-gradient(180deg, #fff6e4, #e7cf9b);
+    border:1px solid rgba(44,36,25,0.4);
+    box-shadow:0 3px 6px rgba(44,36,25,0.4), inset 0 0 0 1px rgba(255,255,255,0.5);
+    cursor:grab;
+    position:relative;
+  }
+  #patternSlider::-moz-range-thumb{
+    width:22px; height:42px;
+    border-radius:4px;
+    background:linear-gradient(180deg, #fff6e4, #e7cf9b);
+    border:1px solid rgba(44,36,25,0.4);
+    box-shadow:0 3px 6px rgba(44,36,25,0.4);
+    cursor:grab;
+  }
+  #patternSlider::-moz-range-track{background:transparent;}
+
+  /* toggle rows */
+  .toggle-row{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:11px 0;
+    border-bottom:1px solid rgba(44,36,25,0.1);
+  }
+  .toggle-row:last-child{border-bottom:none;}
+  .toggle-row .t-label{font-size:13.5px; font-weight:500; color:#2c2419;}
+  .toggle-row .t-sub{font-size:11px; color:rgba(44,36,25,0.5); margin-top:1px;}
+
+  .switch{
+    position:relative; width:40px; height:23px; flex:0 0 auto;
+  }
+  .switch input{opacity:0; width:0; height:0; position:absolute;}
+  .switch .track{
+    position:absolute; inset:0; border-radius:20px;
+    background:rgba(44,36,25,0.22);
+    transition:background 0.2s;
+    cursor:pointer;
+  }
+  .switch .knob{
+    position:absolute; top:2.5px; left:2.5px;
+    width:18px; height:18px; border-radius:50%;
+    background:var(--chalk);
+    box-shadow:0 1px 3px rgba(0,0,0,0.3);
+    transition:transform 0.2s;
+  }
+  .switch input:checked + .track{background:var(--terracotta);}
+  .switch input:checked + .track .knob{transform:translateX(17px);}
+
+  /* info readout (pattern stats) */
+  .stat-grid{
+    display:grid; grid-template-columns:1fr 1fr;
+    gap:14px; margin-top:16px;
+  }
+  .stat{
+    background:rgba(244,241,233,0.55);
+    border:1px solid rgba(44,36,25,0.12);
+    border-radius:6px;
+    padding:11px 13px;
+  }
+  .stat .stat-num{
+    font-family:var(--font-display); font-size:21px; font-weight:600;
+    color:#2c2419; line-height:1;
+  }
+  .stat .stat-label{
+    font-family:var(--font-stamp); font-size:9.5px;
+    text-transform:uppercase; letter-spacing:1px;
+    color:rgba(44,36,25,0.55); margin-top:5px;
+  }
+
+  .panel-list{margin-top:14px; display:flex; flex-direction:column; gap:7px;}
+  .panel-chip{
+    display:flex; align-items:center; gap:9px;
+    font-size:12.5px; color:#3a3024;
+  }
+  .panel-chip .swatch-dot{
+    width:10px; height:10px; border-radius:2px; flex:0 0 auto;
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,0.15);
+  }
+
+  .footer-note{
+    font-family:var(--font-stamp);
+    font-size:10.5px; line-height:1.7;
+    color:rgba(44,36,25,0.45);
+    padding:18px 28px 24px;
+  }
+
+  /* mobile */
+  @media (max-width: 880px){
+    #app{flex-direction:column;}
+    #sidebar{
+      width:100%; height:auto; max-height:52vh; order:2;
+      box-shadow:0 -20px 40px var(--shadow-deep);
+    }
+    #viewport{height:48vh; order:1;}
+    .brandbar{padding:16px 18px 0;}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div id="viewport">
+    <div class="brandbar">
+      <div>
+        <div class="brand-mark">Atelier<span class="dot">·</span>Pattern</div>
+        <div class="brand-sub">3D 의류 → 평면 패턴 전개 스튜디오</div>
+      </div>
+    </div>
+
+    <div class="view-tools">
+      <button class="icon-btn" id="btnTopView" title="패턴 보기 (탑뷰)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9h16M9 4v16"/></svg>
+      </button>
+      <button class="icon-btn" id="btnResetView" title="시점 초기화">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+      </button>
+    </div>
+
+    <div id="hint">
+      <span><kbd>드래그</kbd> 회전</span>
+      <span><kbd>스크롤</kbd> 확대/축소</span>
+    </div>
+
+    <div class="vignette"></div>
+  </div>
+
+  <div id="sidebar">
+
+    <div class="sb-section">
+      <div class="sb-eyebrow">Garment Select — 의상 선택</div>
+      <h1 class="sb-title">사람이 입은 옷,<br>패턴으로 펼치다</h1>
+      <p class="sb-desc">마네킹이 입고 있는 옷을 골라보세요. 슬라이더를 움직이면 입체 의상이 그 형태 그대로 평면 패턴 조각으로 분해되어 펼쳐집니다.</p>
+
+      <div class="garment-tabs" id="garmentTabs">
+        <button class="garment-tab active" data-garment="tshirt">
+          <div class="swatch" style="background:#b5654a;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#2c2419" stroke-width="1.5"><path d="M7 3 3 7l3 3 1.5-1.2V21h9V8.8L18 10l3-3-4-4-2 2h-6L7 3z"/></svg>
+          </div>
+          <span class="tab-label">티셔츠</span><br>
+          <span class="tab-sub">4 PANELS</span>
+        </button>
+        <button class="garment-tab" data-garment="dress">
+          <div class="swatch" style="background:#3c6e64;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#f4f1e9" stroke-width="1.5"><path d="M9 3h6l1 4-2 1 3 12H7L10 8l-2-1 1-4z"/></svg>
+          </div>
+          <span class="tab-label">원피스</span><br>
+          <span class="tab-sub">2 PANELS</span>
+        </button>
+        <button class="garment-tab" data-garment="pants">
+          <div class="swatch" style="background:#33425a;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#f4f1e9" stroke-width="1.5"><path d="M7 2h10l1 8-1 12h-4l-1-9-1 9H7L6 10 7 2z"/></svg>
+          </div>
+          <span class="tab-label">바지</span><br>
+          <span class="tab-sub">4 PANELS</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="sb-section">
+      <div class="sb-eyebrow">Transformation — 전개 슬라이더</div>
+      <div class="slider-block">
+        <div class="slider-labels">
+          <span id="lblWorn" class="active-label">입은 모습</span>
+          <span id="lblFlat">평면 패턴</span>
+        </div>
+        <div class="tape-wrap">
+          <div class="tape-track">
+            <div class="tape-fill" id="tapeFill" style="width:0%;"></div>
+          </div>
+          <input type="range" id="patternSlider" min="0" max="100" value="0" step="0.1">
+        </div>
+      </div>
+    </div>
+
+    <div class="sb-section">
+      <div class="sb-eyebrow">Pattern Markings — 패턴 표기</div>
+      <div class="toggle-row">
+        <div>
+          <div class="t-label">시접선 (Seam allowance)</div>
+          <div class="t-sub">절단선 바깥 점선</div>
+        </div>
+        <div class="switch"><input type="checkbox" id="toggleSeam" checked><div class="track"><div class="knob"></div></div></div>
+      </div>
+      <div class="toggle-row">
+        <div>
+          <div class="t-label">식서 방향 (Grainline)</div>
+          <div class="t-sub">원단 결 방향 화살표</div>
+        </div>
+        <div class="switch"><input type="checkbox" id="toggleGrain" checked><div class="track"><div class="knob"></div></div></div>
+      </div>
+      <div class="toggle-row">
+        <div>
+          <div class="t-label">조각 라벨</div>
+          <div class="t-sub">앞판 · 뒤판 · 소매 등</div>
+        </div>
+        <div class="switch"><input type="checkbox" id="toggleLabel" checked><div class="track"><div class="knob"></div></div></div>
+      </div>
+      <div class="toggle-row">
+        <div>
+          <div class="t-label">드레스폼 표시</div>
+          <div class="t-sub">펼칠수록 서서히 사라짐</div>
+        </div>
+        <div class="switch"><input type="checkbox" id="toggleMannequin" checked><div class="track"><div class="knob"></div></div></div>
+      </div>
+    </div>
+
+    <div class="sb-section">
+      <div class="sb-eyebrow">Cutting Sheet — 패턴 정보</div>
+      <div class="stat-grid">
+        <div class="stat">
+          <div class="stat-num" id="statPanels">4</div>
+          <div class="stat-label">Pattern Pieces</div>
+        </div>
+        <div class="stat">
+          <div class="stat-num" id="statFabric">1.4m</div>
+          <div class="stat-label">Fabric Needed</div>
+        </div>
+      </div>
+      <div class="panel-list" id="panelList"></div>
+    </div>
+
+    <div class="footer-note" id="footerNote">
+      ATELIER PATTERN STUDIO — three.js로 제작된 의류 패턴 시각화 도구. 모든 치수는 교육용 예시이며 실제 봉제 치수와 다를 수 있습니다.
+    </div>
+
+  </div>
+
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module" src="./main.js"></script>
+</body>
+</html>
